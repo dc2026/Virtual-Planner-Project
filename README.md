@@ -29,8 +29,14 @@ The application uses Java to implement the backend of the project. Here are the 
 * Date dealine: date a task needs to be completed by
 * Boolean progress: tracks the progress of the task
 
+## Frontend Implementation
+* Streamlit library to help with front end development
+
+
 ## Requirements
 
 ### Libraries:
 * Java date object library
     * import java.util.Date
+* Streamlit
+    * pip3 install streamlit 
