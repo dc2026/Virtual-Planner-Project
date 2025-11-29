@@ -1,0 +1,28 @@
+{
+  "tasks": [
+    {
+      "id": 0,
+      "task": "DSC Capstone Phase 5 Presentation",
+      "date": "2025-12-01",
+      "time": "04:00:00",
+      "priority": "High",
+      "completed": false
+    }
+  ],
+  "goals": [
+    {
+      "id": 0,
+      "name": "Get a job",
+      "deadline": "2026-05-16",
+      "completed": false
+    }
+  ],
+  "events": [
+    {
+      "id": 0,
+      "title": "Practice Presentation CSC Capstone",
+      "start": "2025-12-03T04:00:00",
+      "end": "2025-12-03T04:30:00"
+    }
+  ]
+}
