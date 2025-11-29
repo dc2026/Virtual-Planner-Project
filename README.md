@@ -6,6 +6,22 @@ The project creates an online planner for users to add tasks, events, and goals.
 This project is in development for our Software Engineering course to practice object oriented programming, project management, agile development process, front end development, git/github
 and project integration.
 
+## How to Run
+1. Install required libraries
+   ```bash
+   pip3 install streamlit
+   ```
+2. Clone or download respository
+3. Open project and correct directory
+   ```bash
+   pwd # check which folder you are in
+   cd streamlit # switch to correct folder
+   ```
+4. Run project from terminal
+```bash
+      streamlit run planner.py
+```
+
 ## Backend Implementation
 
 The application uses Java to implement the backend of the project. Here are the classes:
