@@ -1,12 +1,96 @@
 import streamlit as st
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, time
 import pandas as pd
 from streamlit_calendar import calendar as st_calendar_component
+from auth import UserAuth, show_auth_page, logout_user, save_current_user_data
 
-# --- 1. CONFIGURATION ---
-st.set_page_config(page_title="Virtual Planner", layout="wide")
+# --- 1. CONFIGURATION (must be first) ---
+st.set_page_config(page_title="Virtual Planner", layout="wide", page_icon="📅")
 
-# --- 2. INITIALIZE SESSION STATE ---
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    /* Main title styling */
+    .main-title {
+        font-size: 3rem;
+        font-weight: bold;
+        background: linear-gradient(120deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0;
+    }
+    
+    /* Card styling */
+    .stForm {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    
+    /* Button styling */
+    .stButton>button {
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    /* Section headers */
+    .section-header {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #667eea;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 3px solid #667eea;
+    }
+    
+    /* User info badge */
+    .user-badge {
+        background: linear-gradient(120deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    
+    /* Weekly calendar styling */
+    .day-column {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 0.2rem;
+        min-height: 200px;
+    }
+    
+    /* Dataframe styling */
+    .dataframe {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- 2. CHECK AUTHENTICATION STATUS ---
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
+if 'auth' not in st.session_state:
+    st.session_state.auth = UserAuth()
+
+# Show login page if not authenticated
+if not st.session_state.logged_in:
+    show_auth_page()
+    st.stop()
+
+# --- 3. INITIALIZE SESSION STATE ---
 if 'tasks' not in st.session_state:
     st.session_state.tasks = []
 if 'goals' not in st.session_state:
@@ -20,13 +104,34 @@ if 'editing_id' not in st.session_state:
 if 'editing_type' not in st.session_state:
     st.session_state.editing_type = None
 
-st.title("📅 Virtual Planner")
+# --- HEADER WITH USER INFO ---
+col1, col2, col3 = st.columns([6, 3, 1])
+with col1:
+    st.markdown('<h1 class="main-title">📅 Virtual Planner</h1>', unsafe_allow_html=True)
+with col2:
+    st.markdown(f'<div class="user-badge">👤 {st.session_state.username}</div>', unsafe_allow_html=True)
+with col3:
+    if st.button("🚪 Logout", use_container_width=True):
+        logout_user()
+
+st.markdown("---")
 
 # --- Helper Functions ---
+def convert_date_str(date_obj):
+    """Convert string to date object if needed."""
+    if isinstance(date_obj, str):
+        return datetime.fromisoformat(date_obj).date()
+    return date_obj
+
+def convert_time_str(time_obj):
+    """Convert string to time object if needed."""
+    if isinstance(time_obj, str):
+        return datetime.strptime(time_obj, '%H:%M:%S').time()
+    return time_obj
+
 def get_item_by_id(item_type, item_id):
     """Retrieves an item (task, goal, or event) by its ID."""
     if item_type in st.session_state:
-        # Use a list comprehension to find the item
         found_items = [item for item in st.session_state[item_type] if item['id'] == item_id]
         if found_items:
             return found_items[0]
@@ -49,41 +154,68 @@ def delete_item(item_type, item_id):
         st.session_state[item_type] = [
             item for item in st.session_state[item_type] if item['id'] != item_id
         ]
-    st.success(f"{item_type.capitalize().rstrip('s')} ID {item_id} deleted.")
+    save_current_user_data()
+    st.success(f"✅ {item_type.capitalize().rstrip('s')} deleted!")
     st.rerun()
+
+# --- STATISTICS DASHBOARD ---
+st.markdown('<p class="section-header">📊 Dashboard Overview</p>', unsafe_allow_html=True)
+
+col1, col2, col3, col4 = st.columns(4)
+
+total_tasks = len(st.session_state.tasks)
+completed_tasks = len([t for t in st.session_state.tasks if t['completed']])
+total_goals = len(st.session_state.goals)
+completed_goals = len([g for g in st.session_state.goals if g['completed']])
+
+with col1:
+    st.metric("📝 Total Tasks", total_tasks, delta=f"{completed_tasks} completed")
+with col2:
+    st.metric("🎯 Total Goals", total_goals, delta=f"{completed_goals} completed")
+with col3:
+    st.metric("📅 Events", len(st.session_state.events))
+with col4:
+    completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+    st.metric("✅ Task Completion", f"{completion_rate:.0f}%")
+
+st.markdown("---")
     
-# --- 3. INPUT SELECTION BUTTONS ---
-st.subheader("Add New Item")
+# --- 4. INPUT SELECTION BUTTONS ---
+st.markdown('<p class="section-header">➕ Add New Item</p>', unsafe_allow_html=True)
+
 col_b1, col_b2, col_b3 = st.columns([1, 1, 1])
 
 with col_b1:
-    if st.button("TASK", use_container_width=True):
+    if st.button("📝 ADD TASK", use_container_width=True, type="primary"):
         st.session_state.show_form = 'task'
         reset_editing()
 with col_b2:
-    if st.button("GOAL", use_container_width=True):
+    if st.button("🎯 ADD GOAL", use_container_width=True, type="primary"):
         st.session_state.show_form = 'goal'
         reset_editing()
 with col_b3:
-    if st.button("EVENT", use_container_width=True):
+    if st.button("📅 ADD EVENT", use_container_width=True, type="primary"):
         st.session_state.show_form = 'event'
         reset_editing()
 
-# --- 4. ADD ITEM FORMS ---
+st.markdown("<br>", unsafe_allow_html=True)
+
+# --- 5. ADD ITEM FORMS ---
 if st.session_state.editing_id is None:
     if st.session_state.show_form == 'task':
         with st.form("add_task"):
-            st.write("### 📝 Add New Task")
-            col1, col2, col3, col4 = st.columns(4)
+            st.markdown("### 📝 Create New Task")
+            col1, col2 = st.columns(2)
             with col1:
-                task_name = st.text_input("Task Name", key="add_task_name")
+                task_name = st.text_input("Task Name *", placeholder="Enter task description...", key="add_task_name")
+                task_date = st.date_input("📅 Date", key="add_task_date")
             with col2:
-                task_date = st.date_input("Date", key="add_task_date")
-            with col3:
-                task_time = st.time_input("Time", key="add_task_time")
-            with col4:
-                priority = st.selectbox("Priority", ["Low", "Medium", "High"], key="add_task_priority")
-            submitted = st.form_submit_button("Add Task")
+                task_time = st.time_input("🕐 Time", key="add_task_time")
+                priority = st.selectbox("⚡ Priority", ["Low", "Medium", "High"], key="add_task_priority")
+            
+            col_submit, col_cancel = st.columns([1, 5])
+            with col_submit:
+                submitted = st.form_submit_button("➕ Add Task", use_container_width=True)
 
             if submitted and task_name:
                 new_id = generate_unique_id('tasks')
@@ -95,15 +227,20 @@ if st.session_state.editing_id is None:
                     'priority': priority,
                     'completed': False
                 })
-                st.success(f"Task '{task_name}' added! (ID: {new_id})")
-                # Removed st.rerun() - Streamlit often updates automatically on form submit
+                save_current_user_data()
+                st.success(f"✅ Task '{task_name}' added successfully!")
+                st.rerun()
 
     elif st.session_state.show_form == 'goal':
         with st.form("add_goal"):
-            st.write("### 🎯 Add New Goal")
-            goal_name = st.text_input("Goal Description", key="add_goal_name")
-            goal_deadline = st.date_input("Deadline", key="add_goal_deadline")
-            submitted = st.form_submit_button("Add Goal")
+            st.markdown("### 🎯 Create New Goal")
+            goal_name = st.text_input("Goal Description *", placeholder="What do you want to achieve?", key="add_goal_name")
+            goal_deadline = st.date_input("📅 Deadline", key="add_goal_deadline")
+            
+            col_submit, col_cancel = st.columns([1, 5])
+            with col_submit:
+                submitted = st.form_submit_button("➕ Add Goal", use_container_width=True)
+            
             if submitted and goal_name:
                 new_id = generate_unique_id('goals')
                 st.session_state.goals.append({
@@ -112,18 +249,29 @@ if st.session_state.editing_id is None:
                     'deadline': goal_deadline, 
                     'completed': False
                 })
-                st.success(f"Goal '{goal_name}' added! (ID: {new_id})")
-                # Removed st.rerun()
+                save_current_user_data()
+                st.success(f"✅ Goal '{goal_name}' added successfully!")
+                st.rerun()
 
     elif st.session_state.show_form == 'event':
         with st.form("add_event"):
-            st.write("### 📢 Add New Event")
-            event_title = st.text_input("Event Title", key="add_event_title")
-            event_start_date = st.date_input("Start Date", key="add_event_start_date")
-            event_start_time = st.time_input("Start Time", key="add_event_start_time")
-            event_end_date = st.date_input("End Date", value=event_start_date, key="add_event_end_date")
-            event_end_time = st.time_input("End Time", key="add_event_end_time")
-            submitted = st.form_submit_button("Add Event")
+            st.markdown("### 📅 Create New Event")
+            event_title = st.text_input("Event Title *", placeholder="Enter event name...", key="add_event_title")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**Start**")
+                event_start_date = st.date_input("Start Date", key="add_event_start_date", label_visibility="collapsed")
+                event_start_time = st.time_input("Start Time", key="add_event_start_time", label_visibility="collapsed")
+            with col2:
+                st.markdown("**End**")
+                event_end_date = st.date_input("End Date", value=event_start_date, key="add_event_end_date", label_visibility="collapsed")
+                event_end_time = st.time_input("End Time", key="add_event_end_time", label_visibility="collapsed")
+            
+            col_submit, col_cancel = st.columns([1, 5])
+            with col_submit:
+                submitted = st.form_submit_button("➕ Add Event", use_container_width=True)
+            
             if submitted and event_title:
                 new_id = generate_unique_id('events')
                 st.session_state.events.append({
@@ -132,61 +280,56 @@ if st.session_state.editing_id is None:
                     'start': datetime.combine(event_start_date, event_start_time).isoformat(),
                     'end': datetime.combine(event_end_date, event_end_time).isoformat(),
                 })
-                st.success(f"Event '{event_title}' added! (ID: {new_id})")
-                # Removed st.rerun()
+                save_current_user_data()
+                st.success(f"✅ Event '{event_title}' added successfully!")
+                st.rerun()
 
-# --- 5. EDIT ITEM FORM (CONDITIONAL) ---
+# --- 6. EDIT ITEM FORM (CONDITIONAL) ---
 if st.session_state.editing_id is not None:
     item_type = st.session_state.editing_type
     item_to_edit = get_item_by_id(item_type, st.session_state.editing_id)
 
     if item_to_edit:
-        st.subheader(f"✏️ Editing {item_type.capitalize()}: {item_to_edit.get('task', item_to_edit.get('name', item_to_edit.get('title')))}")
+        st.markdown(f'<p class="section-header">✏️ Editing {item_type.capitalize()}</p>', unsafe_allow_html=True)
         
         with st.form(f"edit_{item_type}"):
-            # --- TASK EDIT FORM ---
             if item_type == 'tasks':
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2 = st.columns(2)
                 with col1:
                     new_task_name = st.text_input("Task Name", value=item_to_edit['task'], key="edit_task_name")
-                with col2:
                     new_task_date = st.date_input("Date", value=item_to_edit['date'], key="edit_task_date")
-                with col3:
+                with col2:
                     new_task_time = st.time_input("Time", value=item_to_edit['time'], key="edit_task_time")
-                with col4:
                     priority_options = ["Low", "Medium", "High"]
                     new_priority = st.selectbox("Priority", priority_options, index=priority_options.index(item_to_edit['priority']), key="edit_task_priority")
-                new_completed = st.checkbox("Completed", value=item_to_edit['completed'], key="edit_task_completed")
+                new_completed = st.checkbox("✅ Mark as completed", value=item_to_edit['completed'], key="edit_task_completed")
                 
-            # --- GOAL EDIT FORM ---
             elif item_type == 'goals':
                 new_goal_name = st.text_input("Goal Description", value=item_to_edit['name'], key="edit_goal_name")
                 new_goal_deadline = st.date_input("Deadline", value=item_to_edit['deadline'], key="edit_goal_deadline")
-                new_completed = st.checkbox("Completed", value=item_to_edit['completed'], key="edit_goal_completed")
+                new_completed = st.checkbox("✅ Mark as completed", value=item_to_edit['completed'], key="edit_goal_completed")
                 
-            # --- EVENT EDIT FORM ---
             elif item_type == 'events':
                 start_dt = datetime.fromisoformat(item_to_edit['start'])
                 end_dt = datetime.fromisoformat(item_to_edit['end'])
 
                 new_event_title = st.text_input("Event Title", value=item_to_edit['title'], key="edit_event_title")
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2 = st.columns(2)
                 with col1:
-                    new_event_start_date = st.date_input("Start Date", value=start_dt.date(), key="edit_event_start_date")
+                    st.markdown("**Start**")
+                    new_event_start_date = st.date_input("Start Date", value=start_dt.date(), key="edit_event_start_date", label_visibility="collapsed")
+                    new_event_start_time = st.time_input("Start Time", value=start_dt.time(), key="edit_event_start_time", label_visibility="collapsed")
                 with col2:
-                    new_event_start_time = st.time_input("Start Time", value=start_dt.time(), key="edit_event_start_time")
-                with col3:
-                    new_event_end_date = st.date_input("End Date", value=end_dt.date(), key="edit_event_end_date")
-                with col4:
-                    new_event_end_time = st.time_input("End Time", value=end_dt.time(), key="edit_event_end_time")
+                    st.markdown("**End**")
+                    new_event_end_date = st.date_input("End Date", value=end_dt.date(), key="edit_event_end_date", label_visibility="collapsed")
+                    new_event_end_time = st.time_input("End Time", value=end_dt.time(), key="edit_event_end_time", label_visibility="collapsed")
 
-            # --- SUBMISSION BUTTONS ---
             st.markdown("---")
             col_save, col_cancel = st.columns([1, 6])
             with col_save:
-                save_changes = st.form_submit_button("Save Changes")
+                save_changes = st.form_submit_button("💾 Save", use_container_width=True, type="primary")
             with col_cancel:
-                cancel_edit = st.form_submit_button("Cancel")
+                cancel_edit = st.form_submit_button("❌ Cancel", use_container_width=True)
 
             if save_changes:
                 for i, item in enumerate(st.session_state[item_type]):
@@ -213,7 +356,8 @@ if st.session_state.editing_id is not None:
                             })
                         break
                 reset_editing()
-                st.success(f"{item_type.capitalize()} updated!")
+                save_current_user_data()
+                st.success(f"✅ {item_type.capitalize()} updated!")
                 st.rerun()
 
             if cancel_edit:
@@ -224,149 +368,166 @@ st.markdown("---")
 
 ## 📅 **Weekly List View**
 
-st.subheader("This Week's Tasks")
-# Get week days
+st.markdown('<p class="section-header">📅 This Week\'s Schedule</p>', unsafe_allow_html=True)
+
 today = datetime.now().date()
 monday = today - timedelta(days=today.weekday())
 week_days = [monday + timedelta(days=i) for i in range(7)]
 
-# Display calendar
 cols = st.columns(7)
 for i, day in enumerate(week_days):
     with cols[i]:
-        st.write(f"**{day.strftime('%a %m/%d')}**")
-
-        # Filter and sort tasks for this day
+        is_today = day == today
+        day_label = "🔵 TODAY" if is_today else day.strftime('%a')
+        
+        if is_today:
+            st.markdown(f"<div style='background: linear-gradient(120deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold;'>{day_label}<br>{day.strftime('%m/%d')}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div style='background: #f8f9fa; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold;'>{day_label}<br>{day.strftime('%m/%d')}</div>", unsafe_allow_html=True)
+        
         day_tasks = sorted(
-            [task for task in st.session_state.tasks if task['date'] == day],
-            key=lambda x: x['time']
+            [task for task in st.session_state.tasks if convert_date_str(task['date']) == day],
+            key=lambda x: convert_time_str(x['time'])
         )
 
+        if not day_tasks:
+            st.markdown("<p style='text-align: center; color: #999; padding: 20px;'>No tasks</p>", unsafe_allow_html=True)
+        
         for task in day_tasks:
             priority_color = {"High": "🔴", "Medium": "🟡", "Low": "🟢"}
             checkbox_key = f"task_{task['id']}_weekly_view"
+            
+            task_time = convert_time_str(task['time'])
 
-            # Checkbox for completion
             completed = st.checkbox(
-                f"{priority_color[task['priority']]} {task['task']} - {task['time'].strftime('%I:%M %p')}",
+                f"{priority_color[task['priority']]} {task['task']}",
                 value=task['completed'],
                 key=checkbox_key
             )
+            st.caption(f"🕐 {task_time.strftime('%I:%M %p')}")
 
-            # Update task completion status
             for t in st.session_state.tasks:
                 if t['id'] == task['id']:
-                    t['completed'] = completed
+                    if t['completed'] != completed:
+                        t['completed'] = completed
+                        save_current_user_data()
                     break
 
 st.markdown("---")
 
-## 📋 **Data Tables & Editing/Deleting Interface**
+## 📋 **Data Management**
 
-st.subheader("Data Management")
+st.markdown('<p class="section-header">📋 Manage Your Items</p>', unsafe_allow_html=True)
 
-# --- Task Table ---
-if st.session_state.tasks:
-    st.markdown("#### Tasks")
-    df_tasks = pd.DataFrame([{
-        'ID': t['id'],
-        'Task': t['task'],
-        'Date': t['date'],
-        'Time': t['time'],
-        'Priority': t['priority'],
-        'Completed': t['completed']
-    } for t in st.session_state.tasks])
-    df_tasks = df_tasks.sort_values(by=['Completed', 'Date', 'Time'], ascending=[True, True, True])
-    st.dataframe(df_tasks, use_container_width=True, hide_index=True)
-    
-    col_t_edit, col_t_del, _ = st.columns([1, 1, 6])
-    with col_t_edit:
-        task_id_to_edit = st.selectbox("Edit Task ID:", options=df_tasks['ID'].tolist(), key='select_task_id', label_visibility="collapsed")
-        if st.button("Edit Task", key='btn_edit_task', use_container_width=True):
-            st.session_state.editing_id = task_id_to_edit
-            st.session_state.editing_type = 'tasks'
-            st.rerun()
-    with col_t_del:
-        task_id_to_delete = st.selectbox("Delete Task ID:", options=df_tasks['ID'].tolist(), key='delete_task_id', label_visibility="collapsed")
-        if st.button("Delete Task", key='btn_delete_task', use_container_width=True):
-            delete_item('tasks', task_id_to_delete) # Call helper function
+# Create tabs for better organization
+tab1, tab2, tab3 = st.tabs(["📝 Tasks", "🎯 Goals", "📅 Events"])
 
-# --- Goal Table ---
-if st.session_state.goals:
-    st.markdown("#### Goals")
-    df_goals = pd.DataFrame([{
-        'ID': g['id'],
-        'Goal': g['name'],
-        'Deadline': g['deadline'],
-        'Completed': g['completed']
-    } for g in st.session_state.goals])
-    st.dataframe(df_goals, use_container_width=True, hide_index=True)
+with tab1:
+    if st.session_state.tasks:
+        df_tasks = pd.DataFrame([{
+            'ID': t['id'],
+            'Task': t['task'],
+            'Date': t['date'],
+            'Time': t['time'],
+            'Priority': t['priority'],
+            'Status': '✅ Done' if t['completed'] else '⏳ Pending'
+        } for t in st.session_state.tasks])
+        df_tasks = df_tasks.sort_values(by=['Status', 'Date', 'Time'], ascending=[False, True, True])
+        
+        st.dataframe(df_tasks, use_container_width=True, hide_index=True, height=300)
+        
+        col_t_edit, col_t_del = st.columns([1, 1])
+        with col_t_edit:
+            task_id_to_edit = st.selectbox("Select task to edit:", options=df_tasks['ID'].tolist(), key='select_task_id')
+            if st.button("✏️ Edit Task", key='btn_edit_task', use_container_width=True, type="primary"):
+                st.session_state.editing_id = task_id_to_edit
+                st.session_state.editing_type = 'tasks'
+                st.rerun()
+        with col_t_del:
+            task_id_to_delete = st.selectbox("Select task to delete:", options=df_tasks['ID'].tolist(), key='delete_task_id')
+            if st.button("🗑️ Delete Task", key='btn_delete_task', use_container_width=True):
+                delete_item('tasks', task_id_to_delete)
+    else:
+        st.info("📝 No tasks yet. Create your first task above!")
 
-    col_g_edit, col_g_del, _ = st.columns([1, 1, 6])
-    with col_g_edit:
-        goal_id_to_edit = st.selectbox("Edit Goal ID:", options=df_goals['ID'].tolist(), key='select_goal_id', label_visibility="collapsed")
-        if st.button("Edit Goal", key='btn_edit_goal', use_container_width=True):
-            st.session_state.editing_id = goal_id_to_edit
-            st.session_state.editing_type = 'goals'
-            st.rerun()
-    with col_g_del:
-        goal_id_to_delete = st.selectbox("Delete Goal ID:", options=df_goals['ID'].tolist(), key='delete_goal_id', label_visibility="collapsed")
-        if st.button("Delete Goal", key='btn_delete_goal', use_container_width=True):
-            delete_item('goals', goal_id_to_delete)
+with tab2:
+    if st.session_state.goals:
+        df_goals = pd.DataFrame([{
+            'ID': g['id'],
+            'Goal': g['name'],
+            'Deadline': g['deadline'],
+            'Status': '✅ Done' if g['completed'] else '⏳ In Progress'
+        } for g in st.session_state.goals])
+        
+        st.dataframe(df_goals, use_container_width=True, hide_index=True, height=300)
 
-# --- Event Table ---
-if st.session_state.events:
-    st.markdown("#### Events")
-    df_events = pd.DataFrame([{
-        'ID': e['id'],
-        'Title': e['title'],
-        'Start': datetime.fromisoformat(e['start']).strftime('%Y-%m-%d %H:%M'),
-        'End': datetime.fromisoformat(e['end']).strftime('%Y-%m-%d %H:%M')
-    } for e in st.session_state.events])
-    st.dataframe(df_events, use_container_width=True, hide_index=True)
-    
-    col_e_edit, col_e_del, _ = st.columns([1, 1, 6])
-    with col_e_edit:
-        event_id_to_edit = st.selectbox("Edit Event ID:", options=df_events['ID'].tolist(), key='select_event_id', label_visibility="collapsed")
-        if st.button("Edit Event", key='btn_edit_event', use_container_width=True):
-            st.session_state.editing_id = event_id_to_edit
-            st.session_state.editing_type = 'events'
-            st.rerun()
-    with col_e_del:
-        event_id_to_delete = st.selectbox("Delete Event ID:", options=df_events['ID'].tolist(), key='delete_event_id', label_visibility="collapsed")
-        if st.button("Delete Event", key='btn_delete_event', use_container_width=True):
-            delete_item('events', event_id_to_delete)
-            
-if not st.session_state.tasks and not st.session_state.goals and not st.session_state.events:
-    st.info("No items recorded yet!")
+        col_g_edit, col_g_del = st.columns([1, 1])
+        with col_g_edit:
+            goal_id_to_edit = st.selectbox("Select goal to edit:", options=df_goals['ID'].tolist(), key='select_goal_id')
+            if st.button("✏️ Edit Goal", key='btn_edit_goal', use_container_width=True, type="primary"):
+                st.session_state.editing_id = goal_id_to_edit
+                st.session_state.editing_type = 'goals'
+                st.rerun()
+        with col_g_del:
+            goal_id_to_delete = st.selectbox("Select goal to delete:", options=df_goals['ID'].tolist(), key='delete_goal_id')
+            if st.button("🗑️ Delete Goal", key='btn_delete_goal', use_container_width=True):
+                delete_item('goals', goal_id_to_delete)
+    else:
+        st.info("🎯 No goals yet. Set your first goal above!")
+
+with tab3:
+    if st.session_state.events:
+        df_events = pd.DataFrame([{
+            'ID': e['id'],
+            'Title': e['title'],
+            'Start': datetime.fromisoformat(e['start']).strftime('%Y-%m-%d %I:%M %p'),
+            'End': datetime.fromisoformat(e['end']).strftime('%Y-%m-%d %I:%M %p')
+        } for e in st.session_state.events])
+        
+        st.dataframe(df_events, use_container_width=True, hide_index=True, height=300)
+        
+        col_e_edit, col_e_del = st.columns([1, 1])
+        with col_e_edit:
+            event_id_to_edit = st.selectbox("Select event to edit:", options=df_events['ID'].tolist(), key='select_event_id')
+            if st.button("✏️ Edit Event", key='btn_edit_event', use_container_width=True, type="primary"):
+                st.session_state.editing_id = event_id_to_edit
+                st.session_state.editing_type = 'events'
+                st.rerun()
+        with col_e_del:
+            event_id_to_delete = st.selectbox("Select event to delete:", options=df_events['ID'].tolist(), key='delete_event_id')
+            if st.button("🗑️ Delete Event", key='btn_delete_event', use_container_width=True):
+                delete_item('events', event_id_to_delete)
+    else:
+        st.info("📅 No events yet. Schedule your first event above!")
 
 st.markdown("---")
 
 ## 🗓️ **Interactive Calendar View**
 
-# --- Prepare Calendar Data ---
+st.markdown('<p class="section-header">🗓️ Calendar View</p>', unsafe_allow_html=True)
+
 calendar_events = []
 priority_colors = {"High": "#FF4B4B", "Medium": "#FFC000", "Low": "#4BCB58"} 
-goal_color = "#3498DB" # Define the goal_color here!
+goal_color = "#3498DB"
 
-# 1. Convert Tasks to Calendar Events (Existing Code)
 for task in st.session_state.tasks:
     if not task['completed']:
-        task_datetime = datetime.combine(task['date'], task['time'])
+        task_date = convert_date_str(task['date'])
+        task_time = convert_time_str(task['time'])
+        task_datetime = datetime.combine(task_date, task_time)
         calendar_events.append({
-            'title': f"Task: {task['task']} ({task['priority']})",
+            'title': f"📝 {task['task']} ({task['priority']})",
             'start': task_datetime.isoformat(),
             'color': priority_colors[task['priority']],
             'id': f"task-{task['id']}", 
             'extendedProps': {'type': 'task', 'item_id': task['id']}
         })
 
-# 2. Add Goals to Calendar Events (Existing Code)
 for goal in st.session_state.goals:
     if not goal['completed']:
-        goal_date = goal['deadline']
+        goal_date = convert_date_str(goal['deadline'])
         calendar_events.append({
-            'title': f"Goal: {goal['name']}",
+            'title': f"🎯 {goal['name']}",
             'start': goal_date.isoformat(), 
             'allDay': True,
             'color': goal_color,
@@ -374,18 +535,16 @@ for goal in st.session_state.goals:
             'extendedProps': {'type': 'goal', 'item_id': goal['id']}
         })
 
-# 3. ADD USER-DEFINED EVENTS (MISSING CODE) 📢
 for event in st.session_state.events:
     calendar_events.append({
-        'title': event['title'],
+        'title': f"📅 {event['title']}",
         'start': event['start'],
         'end': event['end'],
+        'color': '#9b59b6',
         'id': f"event-{event['id']}", 
         'extendedProps': {'type': 'event', 'item_id': event['id']}
-    }
-    )
+    })
 
-# --- Render Calendar ---
 calendar_options = {
     "initialView": "dayGridMonth",
     "headerToolbar": {
@@ -393,12 +552,10 @@ calendar_options = {
         "center": "title",
         "right": "dayGridMonth,timeGridWeek,timeGridDay"
     },
-    "editable": True, 
-    "selectable": True, 
+    "editable": False, 
+    "selectable": True,
+    "height": 650,
 }
-
-st.subheader("Full Calendar View")
-
 
 calendar_result = st_calendar_component( 
     events=calendar_events,
@@ -408,38 +565,39 @@ calendar_result = st_calendar_component(
             color: #FFFFFF !important;
             font-weight: bold;
         }
+        .fc {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
     """,
     key='full_calendar'
 )
 
-# --- Handle Calendar Item Click for Details ---
 if calendar_result.get("eventClick"):
     clicked_event = calendar_result["eventClick"]["event"]
     
-    # Extract info from the calendar event object
     item_type = clicked_event['extendedProps']['type']
     item_id = clicked_event['extendedProps']['item_id']
     
-    # Get the original item data from session state
     item_details = get_item_by_id(item_type + 's', item_id)
     
     if item_details:
-        st.subheader(f"Details for {item_type.capitalize()}")
+        st.markdown(f'<p class="section-header">ℹ️ {item_type.capitalize()} Details</p>', unsafe_allow_html=True)
+        
         if item_type == 'task':
-            st.json({
-                "ID": item_details['id'],
-                "Task Name": item_details['task'],
-                "Date": str(item_details['date']),
-                "Time": str(item_details['time']),
-                "Priority": item_details['priority'],
-                "Completed": item_details['completed']
-            })
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"**📝 Task:** {item_details['task']}")
+                st.write(f"**📅 Date:** {item_details['date']}")
+            with col2:
+                st.write(f"**🕐 Time:** {item_details['time']}")
+                st.write(f"**⚡ Priority:** {item_details['priority']}")
+                st.write(f"**Status:** {'✅ Completed' if item_details['completed'] else '⏳ Pending'}")
         elif item_type == 'event':
-            st.json({
-                "ID": item_details['id'],
-                "Title": item_details['title'],
-                "Start Time": item_details['start'],
-                "End Time": item_details['end']
-            })
-    else:
-        st.warning("Could not find details for the clicked item.")
+            st.write(f"**📅 Event:** {item_details['title']}")
+            st.write(f"**⏰ Start:** {datetime.fromisoformat(item_details['start']).strftime('%Y-%m-%d %I:%M %p')}")
+            st.write(f"**⏰ End:** {datetime.fromisoformat(item_details['end']).strftime('%Y-%m-%d %I:%M %p')}")
+        elif item_type == 'goal':
+            st.write(f"**🎯 Goal:** {item_details['name']}")
+            st.write(f"**📅 Deadline:** {item_details['deadline']}")
+            st.write(f"**Status:** {'✅ Completed' if item_details['completed'] else '⏳ In Progress'}")
