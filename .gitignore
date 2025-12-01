@@ -1,6 +1,8 @@
 # Dependencies
 react-frontend/node_modules/
 node_modules/
+react-frontend/package-lock.json
+package-lock.json
 
 # Production builds
 react-frontend/build/
