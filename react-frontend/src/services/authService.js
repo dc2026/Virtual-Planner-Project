@@ -6,13 +6,23 @@ class AuthService {
   }
 
   loadUsers() {
-    const users = localStorage.getItem('users');
-    return users ? JSON.parse(users) : {};
+    try {
+      const users = localStorage.getItem('users');
+      return users ? JSON.parse(users) : {};
+    } catch (error) {
+      console.error('Error loading users:', error);
+      return {};
+    }
   }
 
   saveUsers(users) {
-    localStorage.setItem('users', JSON.stringify(users));
-    this.users = users;
+    try {
+      localStorage.setItem('users', JSON.stringify(users));
+      this.users = users;
+    } catch (error) {
+      console.error('Error saving users:', error);
+      throw new Error('Failed to save user data');
+    }
   }
 
   hashPassword(password) {
@@ -55,30 +65,35 @@ class AuthService {
   }
 
   loadUserData(username) {
-    const userData = localStorage.getItem(`${username}_data`);
-    if (userData) {
-      const data = JSON.parse(userData);
-      
-      // Convert date strings back to Date objects
-      data.tasks?.forEach(task => {
-        if (task.date && typeof task.date === 'string') {
-          task.date = task.date;
-        }
-        if (task.time && typeof task.time === 'string') {
-          task.time = task.time;
-        }
-      });
+    try {
+      const userData = localStorage.getItem(`${username}_data`);
+      if (userData) {
+        const data = JSON.parse(userData);
+        
+        // Convert date strings back to Date objects
+        data.tasks?.forEach(task => {
+          if (task.date && typeof task.date === 'string') {
+            task.date = task.date;
+          }
+          if (task.time && typeof task.time === 'string') {
+            task.time = task.time;
+          }
+        });
 
-      data.goals?.forEach(goal => {
-        if (goal.deadline && typeof goal.deadline === 'string') {
-          goal.deadline = goal.deadline;
-        }
-      });
+        data.goals?.forEach(goal => {
+          if (goal.deadline && typeof goal.deadline === 'string') {
+            goal.deadline = goal.deadline;
+          }
+        });
 
-      return data;
+        return data;
+      }
+
+      return { tasks: [], goals: [], events: [] };
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      return { tasks: [], goals: [], events: [] };
     }
-
-    return { tasks: [], goals: [], events: [] };
   }
 
   saveUserData(username, data) {
@@ -92,15 +107,83 @@ class AuthService {
   }
 
   getCurrentUser() {
-    return localStorage.getItem('currentUser');
+    try {
+      return localStorage.getItem('currentUser');
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
   }
 
   setCurrentUser(username) {
-    localStorage.setItem('currentUser', username);
+    try {
+      localStorage.setItem('currentUser', username);
+    } catch (error) {
+      console.error('Error setting current user:', error);
+      throw new Error('Failed to set current user');
+    }
   }
 
   logout() {
-    localStorage.removeItem('currentUser');
+    try {
+      localStorage.removeItem('currentUser');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  }
+
+  generateResetToken() {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
+
+  requestPasswordReset(username, email) {
+    if (!this.users[username]) {
+      return { success: false, message: 'Username not found' };
+    }
+
+    if (this.users[username].email !== email) {
+      return { success: false, message: 'Email does not match our records' };
+    }
+
+    const resetToken = this.generateResetToken();
+    const resetExpiry = Date.now() + (15 * 60 * 1000); // 15 minutes
+    
+    this.users[username].resetToken = resetToken;
+    this.users[username].resetExpiry = resetExpiry;
+    this.saveUsers(this.users);
+
+    // In a real app, this would send an email with the token
+    console.log(`Password reset token for ${username}: ${resetToken}`);
+    
+    return { 
+      success: true, 
+      message: 'Password reset token generated. Check console for token (in production, this would be emailed).',
+      token: resetToken // Only for demo purposes
+    };
+  }
+
+  resetPassword(username, token, newPassword) {
+    if (!this.users[username]) {
+      return { success: false, message: 'Username not found' };
+    }
+
+    if (!this.users[username].resetToken || this.users[username].resetToken !== token) {
+      return { success: false, message: 'Invalid reset token' };
+    }
+
+    if (Date.now() > this.users[username].resetExpiry) {
+      delete this.users[username].resetToken;
+      delete this.users[username].resetExpiry;
+      this.saveUsers(this.users);
+      return { success: false, message: 'Reset token has expired' };
+    }
+
+    this.users[username].password = this.hashPassword(newPassword);
+    delete this.users[username].resetToken;
+    delete this.users[username].resetExpiry;
+    this.saveUsers(this.users);
+
+    return { success: true, message: 'Password reset successful!' };
   }
 }
 

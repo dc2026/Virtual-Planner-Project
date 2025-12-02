@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Toaster, toast } from 'react-hot-toast';
+import { FiLogOut, FiPlus } from 'react-icons/fi';
 import AuthPage from './components/AuthPage';
 import Dashboard from './components/Dashboard';
 import ItemForms from './components/ItemForms';
 import WeeklyView from './components/WeeklyView';
 import DataTables from './components/DataTables';
 import CalendarView from './components/CalendarView';
+import Reminders from './components/Reminders';
 import authService from './services/authService';
 
 function App() {
@@ -81,6 +84,8 @@ function App() {
     } else if (type === 'events') {
       setEvents([...events, newItem]);
     }
+    
+    toast.success(`${type.slice(0, -1)} added successfully`);
   };
 
   const handleUpdateItem = (type, itemId, updatedData) => {
@@ -101,7 +106,11 @@ function App() {
   };
 
   const handleDeleteItem = (type, itemId) => {
-    if (window.confirm(`Are you sure you want to delete this ${type.slice(0, -1)}?`)) {
+    const itemName = type === 'tasks' ? tasks.find(t => t.id === itemId)?.task :
+                     type === 'goals' ? goals.find(g => g.id === itemId)?.name :
+                     events.find(e => e.id === itemId)?.title;
+    
+    if (window.confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
       if (type === 'tasks') {
         setTasks(tasks.filter(task => task.id !== itemId));
       } else if (type === 'goals') {
@@ -109,6 +118,13 @@ function App() {
       } else if (type === 'events') {
         setEvents(events.filter(event => event.id !== itemId));
       }
+      
+      // Clear editing state if deleting the item being edited
+      if (editingItem && editingItem.id === itemId) {
+        setEditingItem(null);
+      }
+      
+      toast.success(`${type.slice(0, -1)} deleted successfully`);
     }
   };
 
@@ -135,19 +151,20 @@ function App() {
   return (
     <div className="container">
       {/* Header */}
-      <div className="row" style={{ alignItems: 'center', marginBottom: '2rem' }}>
+      <header className="row" style={{ alignItems: 'center', marginBottom: '2rem' }}>
         <div className="col-6">
-          <h1 className="main-title">📅 Virtual Planner</h1>
+          <h1 className="main-title">Virtual Planner</h1>
         </div>
         <div className="col-4">
-          <div className="user-badge">👤 {currentUser}</div>
+          <div className="user-badge" role="status" aria-label={`Logged in as ${currentUser}`}>{currentUser}</div>
         </div>
         <div className="col-2">
-          <button className="btn btn-secondary" onClick={handleLogout}>
-            🚪 Logout
+          <button className="btn btn-secondary" onClick={handleLogout} aria-label="Logout from application">
+            <FiLogOut style={{ marginRight: '0.5rem' }} />
+            Logout
           </button>
         </div>
-      </div>
+      </header>
 
       <hr />
 
@@ -157,45 +174,53 @@ function App() {
       <hr />
 
       {/* Add New Item Buttons */}
-      <p className="section-header">➕ Add New Item</p>
-      <div className="row">
-        <div className="col-4">
-          <button 
-            className="btn btn-primary" 
-            style={{ width: '100%' }}
-            onClick={() => {
-              setActiveForm('task');
-              setEditingItem(null);
-            }}
-          >
-            📝 ADD TASK
-          </button>
+      <section>
+        <h2 className="section-header">Add New Item</h2>
+        <div className="row" role="group" aria-label="Add new item options">
+          <div className="col-4">
+            <button 
+              className="btn btn-primary" 
+              style={{ width: '100%' }}
+              onClick={() => {
+                setActiveForm('task');
+                setEditingItem(null);
+              }}
+              aria-pressed={activeForm === 'task'}
+            >
+              <FiPlus style={{ marginRight: '0.5rem' }} />
+            ADD TASK
+            </button>
+          </div>
+          <div className="col-4">
+            <button 
+              className="btn btn-primary" 
+              style={{ width: '100%' }}
+              onClick={() => {
+                setActiveForm('goal');
+                setEditingItem(null);
+              }}
+              aria-pressed={activeForm === 'goal'}
+            >
+              <FiPlus style={{ marginRight: '0.5rem' }} />
+            ADD GOAL
+            </button>
+          </div>
+          <div className="col-4">
+            <button 
+              className="btn btn-primary" 
+              style={{ width: '100%' }}
+              onClick={() => {
+                setActiveForm('event');
+                setEditingItem(null);
+              }}
+              aria-pressed={activeForm === 'event'}
+            >
+              <FiPlus style={{ marginRight: '0.5rem' }} />
+            ADD EVENT
+            </button>
+          </div>
         </div>
-        <div className="col-4">
-          <button 
-            className="btn btn-primary" 
-            style={{ width: '100%' }}
-            onClick={() => {
-              setActiveForm('goal');
-              setEditingItem(null);
-            }}
-          >
-            🎯 ADD GOAL
-          </button>
-        </div>
-        <div className="col-4">
-          <button 
-            className="btn btn-primary" 
-            style={{ width: '100%' }}
-            onClick={() => {
-              setActiveForm('event');
-              setEditingItem(null);
-            }}
-          >
-            📅 ADD EVENT
-          </button>
-        </div>
-      </div>
+      </section>
 
       <br />
 
@@ -211,7 +236,16 @@ function App() {
       <hr />
 
       {/* Weekly View */}
-      <WeeklyView tasks={tasks} onToggleTask={handleToggleTask} />
+      <WeeklyView 
+        tasks={tasks} 
+        goals={goals} 
+        events={events} 
+        onToggleTask={handleToggleTask} 
+        onToggleGoal={handleToggleGoal}
+        onEditTask={(task) => handleEditItem('tasks', task)}
+        onEditGoal={(goal) => handleEditItem('goals', goal)}
+        onEditEvent={(event) => handleEditItem('events', event)}
+      />
 
       <hr />
 
@@ -233,6 +267,11 @@ function App() {
         events={events}
         onToggleGoal={handleToggleGoal}
       />
+      
+      <hr />
+      
+      <Reminders tasks={tasks} goals={goals} events={events} />
+      <Toaster position="top-right" />
     </div>
   );
 }

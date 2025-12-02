@@ -9,14 +9,14 @@ const Dashboard = ({ tasks, goals, events }) => {
 
   return (
     <div>
-      <p className="section-header">📊 Dashboard Overview</p>
+      <h2 className="section-header">Dashboard Overview</h2>
       
       <div className="row">
         <div className="col-3">
           <div className="metric-card">
             <div className="metric-value">{totalTasks}</div>
-            <div className="metric-label">📝 Total Tasks</div>
-            <div style={{ color: '#28a745', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+            <div className="metric-label">Total Tasks</div>
+            <div style={{ color: '#4575B4', fontSize: '0.9rem', marginTop: '0.5rem' }}>
               {completedTasks} completed
             </div>
           </div>
@@ -25,8 +25,8 @@ const Dashboard = ({ tasks, goals, events }) => {
         <div className="col-3">
           <div className="metric-card">
             <div className="metric-value">{totalGoals}</div>
-            <div className="metric-label">🎯 Total Goals</div>
-            <div style={{ color: '#28a745', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+            <div className="metric-label">Total Goals</div>
+            <div style={{ color: '#4575B4', fontSize: '0.9rem', marginTop: '0.5rem' }}>
               {completedGoals} completed
             </div>
           </div>
@@ -35,14 +35,14 @@ const Dashboard = ({ tasks, goals, events }) => {
         <div className="col-3">
           <div className="metric-card">
             <div className="metric-value">{events.length}</div>
-            <div className="metric-label">📅 Events</div>
+            <div className="metric-label">Events</div>
           </div>
         </div>
         
         <div className="col-3">
           <div className="metric-card">
             <div className="metric-value">{Math.round(completionRate)}%</div>
-            <div className="metric-label">✅ Task Completion</div>
+            <div className="metric-label">Task Completion</div>
           </div>
         </div>
       </div>

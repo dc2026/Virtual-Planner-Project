@@ -1,33 +1,52 @@
 import React, { useState } from 'react';
+import { format, parseISO, isValid, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, startOfWeek } from 'date-fns';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0);
+  });
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [calendarView, setCalendarView] = useState('month');
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'High': return '#FF4B4B';
-      case 'Medium': return '#FFC000';
-      case 'Low': return '#4BCB58';
+      case 'High': return '#D73027';    // Red-orange (colorblind safe)
+      case 'Medium': return '#4575B4';  // Blue (colorblind safe)
+      case 'Low': return '#91BFDB';     // Light blue (colorblind safe)
       default: return '#666';
     }
   };
 
   const getItemsForDate = (date) => {
-    const dateString = date.toISOString().split('T')[0];
+    // Use local date string to avoid timezone conversion
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
     
-    const dayTasks = tasks.filter(task => 
-      task.date === dateString && !task.completed
-    );
+    const dayTasks = tasks.filter(task => {
+      if (!task.date) return false;
+      const taskDate = task.date.includes('T') ? task.date.split('T')[0] : task.date;
+      return taskDate === dateString && !task.completed;
+    });
     
-    const dayGoals = goals.filter(goal => 
-      goal.deadline === dateString && !goal.completed
-    );
+    const dayGoals = goals.filter(goal => {
+      if (!goal.deadline) return false;
+      const goalDate = goal.deadline.includes('T') ? goal.deadline.split('T')[0] : goal.deadline;
+      return goalDate === dateString && !goal.completed;
+    });
     
     const dayEvents = events.filter(event => {
-      const eventDate = new Date(event.start).toISOString().split('T')[0];
-      return eventDate === dateString;
+      if (!event.start) return false;
+      try {
+        const eventDate = new Date(event.start);
+        const eventDateString = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}-${String(eventDate.getDate()).padStart(2, '0')}`;
+        return eventDateString === dateString;
+      } catch {
+        return false;
+      }
     });
 
     return { tasks: dayTasks, goals: dayGoals, events: dayEvents };
@@ -91,8 +110,10 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
   };
 
   const handleDateClick = (date) => {
-    setSelectedDate(date);
-    const items = getItemsForDate(date);
+    // Create new date to avoid timezone issues
+    const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    setSelectedDate(localDate);
+    const items = getItemsForDate(localDate);
     if (items.tasks.length > 0 || items.goals.length > 0 || items.events.length > 0) {
       setSelectedEvent(items);
     } else {
@@ -114,7 +135,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
     return date.toLocaleString();
   };
 
-  const MonthView = ({ selectedDate, onDateClick, getItemsForDate, getPriorityColor }) => {
+  const MonthView = ({ selectedDate, setSelectedDate, onDateClick, getItemsForDate, getPriorityColor }) => {
     const today = new Date();
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth();
@@ -130,10 +151,38 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
       days.push(date);
     }
     
+    const goToPreviousMonth = () => {
+      const prevMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, selectedDate.getDate(), 12, 0, 0);
+      setSelectedDate(prevMonth);
+    };
+    
+    const goToNextMonth = () => {
+      const nextMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, selectedDate.getDate(), 12, 0, 0);
+      setSelectedDate(nextMonth);
+    };
+    
     return (
       <div>
-        <div style={{ textAlign: 'center', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
-          {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem', gap: '1rem' }}>
+          <button 
+            onClick={goToPreviousMonth}
+            className="btn btn-secondary"
+            style={{ padding: '0.5rem', minWidth: 'auto' }}
+            aria-label="Previous month"
+          >
+            <FiChevronLeft />
+          </button>
+          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', minWidth: '200px', textAlign: 'center' }}>
+            {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </div>
+          <button 
+            onClick={goToNextMonth}
+            className="btn btn-secondary"
+            style={{ padding: '0.5rem', minWidth: 'auto' }}
+            aria-label="Next month"
+          >
+            <FiChevronRight />
+          </button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', backgroundColor: '#ddd' }}>
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -144,13 +193,18 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
           {days.map((date, i) => {
             const items = getItemsForDate(date);
             const isCurrentMonth = date.getMonth() === month;
-            const isToday = date.toDateString() === today.toDateString();
+            const isToday = date.getFullYear() === today.getFullYear() && 
+                           date.getMonth() === today.getMonth() && 
+                           date.getDate() === today.getDate();
             const isSelected = date.toDateString() === selectedDate.toDateString();
             
             return (
               <div 
                 key={i}
-                onClick={() => onDateClick(date)}
+                onClick={() => {
+                  const clickedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+                  onDateClick(clickedDate);
+                }}
                 style={{
                   padding: '0.5rem',
                   backgroundColor: isSelected ? '#764ba2' : isToday ? '#667eea' : '#fff',
@@ -180,53 +234,103 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
     );
   };
   
-  const WeekView = ({ selectedDate, onDateClick, getItemsForDate, getPriorityColor, formatTime }) => {
-    const startOfWeek = new Date(selectedDate);
-    startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
+  const WeekView = ({ selectedDate, setSelectedDate, onDateClick, getItemsForDate, getPriorityColor, formatTime }) => {
+    const weekStart = startOfWeek(selectedDate);
     
     const weekDays = [];
     for (let i = 0; i < 7; i++) {
-      const date = new Date(startOfWeek);
-      date.setDate(startOfWeek.getDate() + i);
+      const date = addDays(weekStart, i);
       weekDays.push(date);
     }
     
+    const goToPreviousWeek = () => {
+      const prevWeek = new Date(selectedDate);
+      prevWeek.setDate(prevWeek.getDate() - 7);
+      setSelectedDate(prevWeek);
+    };
+    
+    const goToNextWeek = () => {
+      const nextWeek = new Date(selectedDate);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      setSelectedDate(nextWeek);
+    };
+    
     return (
       <div>
-        <div style={{ textAlign: 'center', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
-          Week of {startOfWeek.toLocaleDateString()}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem', gap: '1rem' }}>
+          <button 
+            onClick={goToPreviousWeek}
+            className="btn btn-secondary"
+            style={{ padding: '0.5rem', minWidth: 'auto' }}
+            aria-label="Previous week"
+          >
+            <FiChevronLeft />
+          </button>
+          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', minWidth: '200px', textAlign: 'center' }}>
+            Week of {weekStart.toLocaleDateString()}
+          </div>
+          <button 
+            onClick={goToNextWeek}
+            className="btn btn-secondary"
+            style={{ padding: '0.5rem', minWidth: 'auto' }}
+            aria-label="Next week"
+          >
+            <FiChevronRight />
+          </button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {weekDays.map((date, i) => {
             const items = getItemsForDate(date);
-            const isToday = date.toDateString() === new Date().toDateString();
+            const todayCheck = new Date();
+            const isToday = date.getFullYear() === todayCheck.getFullYear() && 
+                           date.getMonth() === todayCheck.getMonth() && 
+                           date.getDate() === todayCheck.getDate();
             
             return (
               <div key={i} onClick={() => onDateClick(date)} style={{ 
                 padding: '1rem', 
                 backgroundColor: isToday ? '#667eea' : '#f8f9fa',
-                color: isToday ? 'white' : '#333',
+                color: isToday ? 'white' : '#2c3e50',
                 cursor: 'pointer',
-                minHeight: '200px',
-                border: '1px solid #ddd'
+                minHeight: '80px',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '1rem'
               }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                <div style={{ fontWeight: 'bold', minWidth: '60px', textAlign: 'center' }}>
                   {date.toLocaleDateString('en-US', { weekday: 'short' })}
                   <br />
                   {date.getDate()}
                 </div>
-                {items.tasks.map(task => (
-                  <div key={task.id} style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}>
-                    <span style={{ color: getPriorityColor(task.priority) }}>●</span> {task.task}
-                    <br />
-                    <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{formatTime(task.time)}</span>
-                  </div>
-                ))}
-                {items.events.map(event => (
-                  <div key={event.id} style={{ fontSize: '0.8rem', marginBottom: '0.25rem', color: '#9b59b6' }}>
-                    ● {event.title}
-                  </div>
-                ))}
+                <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {items.tasks.map(task => (
+                    <div key={task.id} style={{ 
+                      fontSize: '0.8rem', 
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: isToday ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.8)',
+                      borderRadius: '4px',
+                      borderLeft: `3px solid ${getPriorityColor(task.priority)}`,
+                      color: isToday ? 'white' : '#2c3e50'
+                    }}>
+                      {task.task}
+                      <div style={{ fontSize: '0.7rem', opacity: isToday ? 0.9 : 0.7, color: isToday ? 'white' : '#555' }}>{formatTime(task.time)}</div>
+                    </div>
+                  ))}
+                  {items.events.map(event => (
+                    <div key={event.id} style={{ 
+                      fontSize: '0.8rem', 
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: isToday ? 'rgba(255,255,255,0.3)' : 'rgba(155,91,182,0.2)',
+                      borderRadius: '4px',
+                      borderLeft: '3px solid #9b59b6',
+                      color: isToday ? 'white' : '#2c3e50'
+                    }}>
+                      {event.title}
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })}
@@ -235,13 +339,43 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
     );
   };
   
-  const DayView = ({ selectedDate, getItemsForDate, getPriorityColor, formatTime, formatDateTime }) => {
+  const DayView = ({ selectedDate, setSelectedDate, getItemsForDate, getPriorityColor, formatTime, formatDateTime }) => {
     const items = getItemsForDate(selectedDate);
+    
+    const goToPreviousDay = () => {
+      const prevDay = new Date(selectedDate);
+      prevDay.setDate(prevDay.getDate() - 1);
+      setSelectedDate(prevDay);
+    };
+    
+    const goToNextDay = () => {
+      const nextDay = new Date(selectedDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      setSelectedDate(nextDay);
+    };
     
     return (
       <div>
-        <div style={{ textAlign: 'center', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
-          {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem', gap: '1rem' }}>
+          <button 
+            onClick={goToPreviousDay}
+            className="btn btn-secondary"
+            style={{ padding: '0.5rem', minWidth: 'auto' }}
+            aria-label="Previous day"
+          >
+            <FiChevronLeft />
+          </button>
+          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', minWidth: '300px', textAlign: 'center' }}>
+            {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+          <button 
+            onClick={goToNextDay}
+            className="btn btn-secondary"
+            style={{ padding: '0.5rem', minWidth: 'auto' }}
+            aria-label="Next day"
+          >
+            <FiChevronRight />
+          </button>
         </div>
         <div style={{ padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '10px' }}>
           {items.tasks.length === 0 && items.goals.length === 0 && items.events.length === 0 ? (
@@ -250,7 +384,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
             <div>
               {items.tasks.length > 0 && (
                 <div style={{ marginBottom: '1rem' }}>
-                  <h4 style={{ color: '#667eea' }}>📝 Tasks</h4>
+                  <h4 style={{ color: '#667eea' }}>Tasks</h4>
                   {items.tasks.map(task => (
                     <div key={task.id} style={{ 
                       padding: '0.75rem', 
@@ -261,7 +395,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
                     }}>
                       <div style={{ fontWeight: 'bold' }}>{task.task}</div>
                       <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                        🕐 {formatTime(task.time)} | ⚡ {task.priority}
+                        {formatTime(task.time)} | {task.priority}
                       </div>
                     </div>
                   ))}
@@ -270,7 +404,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
               
               {items.goals.length > 0 && (
                 <div style={{ marginBottom: '1rem' }}>
-                  <h4 style={{ color: '#667eea' }}>🎯 Goals</h4>
+                  <h4 style={{ color: '#667eea' }}>Goals</h4>
                   {items.goals.map(goal => (
                     <div key={goal.id} style={{ 
                       padding: '0.75rem', 
@@ -289,7 +423,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
                       />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 'bold', textDecoration: goal.completed ? 'line-through' : 'none' }}>{goal.name}</div>
-                        <div style={{ fontSize: '0.9rem', color: '#666' }}>📅 Deadline</div>
+                        <div style={{ fontSize: '0.9rem', color: '#666' }}>Deadline</div>
                       </div>
                     </div>
                   ))}
@@ -298,7 +432,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
               
               {items.events.length > 0 && (
                 <div>
-                  <h4 style={{ color: '#667eea' }}>📅 Events</h4>
+                  <h4 style={{ color: '#667eea' }}>Events</h4>
                   {items.events.map(event => (
                     <div key={event.id} style={{ 
                       padding: '0.75rem', 
@@ -327,30 +461,33 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
 
   return (
     <div>
-      <p className="section-header">🗓️ Calendar View</p>
+      <h2 className="section-header">Calendar View</h2>
       
       <div style={{ marginBottom: '1rem' }}>
         <div className="row">
           <div className="col-6">
-            <h3>View:</h3>
+            <label className="form-label">View:</label>
           </div>
           <div className="col-6">
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem' }} role="group" aria-label="Calendar view options">
               <button 
                 className={`btn ${calendarView === 'month' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setCalendarView('month')}
+                aria-pressed={calendarView === 'month'}
               >
                 Month
               </button>
               <button 
                 className={`btn ${calendarView === 'week' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setCalendarView('week')}
+                aria-pressed={calendarView === 'week'}
               >
                 Week
               </button>
               <button 
                 className={`btn ${calendarView === 'day' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setCalendarView('day')}
+                aria-pressed={calendarView === 'day'}
               >
                 Day
               </button>
@@ -360,12 +497,13 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
       </div>
       
       <div className="row">
-        <div className={calendarView === 'day' ? 'col-12' : 'col-8'}>
+        <div className={calendarView === 'day' ? 'col-12' : 'col-9'}>
           <div className="card">
             {calendarView === 'month' && (
               <div className="month-view">
                 <MonthView 
                   selectedDate={selectedDate}
+                  setSelectedDate={setSelectedDate}
                   onDateClick={handleDateClick}
                   getItemsForDate={getItemsForDate}
                   getPriorityColor={getPriorityColor}
@@ -377,6 +515,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
               <div className="week-view">
                 <WeekView 
                   selectedDate={selectedDate}
+                  setSelectedDate={setSelectedDate}
                   onDateClick={handleDateClick}
                   getItemsForDate={getItemsForDate}
                   getPriorityColor={getPriorityColor}
@@ -389,6 +528,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
               <div className="day-view">
                 <DayView 
                   selectedDate={selectedDate}
+                  setSelectedDate={setSelectedDate}
                   getItemsForDate={getItemsForDate}
                   getPriorityColor={getPriorityColor}
                   formatTime={formatTime}
@@ -400,25 +540,28 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
         </div>
         
         {calendarView !== 'day' && (
-          <div className="col-4">
+          <div className="col-3">
           {selectedEvent ? (
             <div className="card">
-              <h3>📅 {selectedDate.toLocaleDateString()}</h3>
+              <h3>{selectedDate.toLocaleDateString()}</h3>
               
               {selectedEvent.tasks.length > 0 && (
                 <div style={{ marginBottom: '1rem' }}>
-                  <h4 style={{ color: '#667eea', marginBottom: '0.5rem' }}>📝 Tasks</h4>
+                  <h4 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Tasks</h4>
                   {selectedEvent.tasks.map(task => (
                     <div key={task.id} style={{ 
-                      padding: '0.5rem', 
-                      marginBottom: '0.5rem',
+                      padding: '0.75rem', 
+                      marginBottom: '0.75rem',
                       backgroundColor: '#f8f9fa',
-                      borderRadius: '5px',
+                      borderRadius: '8px',
                       borderLeft: `4px solid ${getPriorityColor(task.priority)}`
                     }}>
-                      <div style={{ fontWeight: 'bold' }}>{task.task}</div>
-                      <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                        🕐 {formatTime(task.time)} | ⚡ {task.priority}
+                      <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', lineHeight: '1.3' }}>{task.task}</div>
+                      <div style={{ fontSize: '0.85rem', color: '#666', lineHeight: '1.4' }}>
+                        {formatTime(task.time)}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: '#666', lineHeight: '1.4' }}>
+                        {task.priority}
                       </div>
                     </div>
                   ))}
@@ -427,7 +570,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
               
               {selectedEvent.goals.length > 0 && (
                 <div style={{ marginBottom: '1rem' }}>
-                  <h4 style={{ color: '#667eea', marginBottom: '0.5rem' }}>🎯 Goals</h4>
+                  <h4 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Goals</h4>
                   {selectedEvent.goals.map(goal => (
                     <div key={goal.id} style={{ 
                       padding: '0.5rem', 
@@ -447,7 +590,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
                       <div>
                         <div style={{ fontWeight: 'bold', textDecoration: goal.completed ? 'line-through' : 'none' }}>{goal.name}</div>
                         <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                          📅 Deadline
+                          Deadline
                         </div>
                       </div>
                     </div>
@@ -457,7 +600,7 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
               
               {selectedEvent.events.length > 0 && (
                 <div>
-                  <h4 style={{ color: '#667eea', marginBottom: '0.5rem' }}>📅 Events</h4>
+                  <h4 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Events</h4>
                   {selectedEvent.events.map(event => (
                     <div key={event.id} style={{ 
                       padding: '0.5rem', 
@@ -480,31 +623,31 @@ const CalendarView = ({ tasks, goals, events, onToggleGoal }) => {
             </div>
           ) : (
             <div className="card">
-              <h3>📅 {selectedDate.toLocaleDateString()}</h3>
-              <p style={{ color: '#666', fontStyle: 'italic' }}>
+              <h3>{selectedDate.toLocaleDateString()}</h3>
+              <p style={{ color: '#666', fontStyle: 'italic', marginBottom: '1rem' }}>
                 No items scheduled for this date.
               </p>
-              <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                <p><strong>Color Legend</strong></p>
+              <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#666' }}>
+                <p style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}><strong>Legend</strong></p>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#FF4B4B', marginRight: '0.5rem' }}></div>
-                  High Priority Tasks
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#D73027', marginRight: '0.5rem' }}></div>
+                  <span>High</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#FFC000', marginRight: '0.5rem' }}></div>
-                  Medium Priority Tasks
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4575B4', marginRight: '0.5rem' }}></div>
+                  <span>Medium</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#4BCB58', marginRight: '0.5rem' }}></div>
-                  Low Priority Tasks
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#91BFDB', marginRight: '0.5rem' }}></div>
+                  <span>Low</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#3498DB', marginRight: '0.5rem' }}></div>
-                  Goals
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3498DB', marginRight: '0.5rem' }}></div>
+                  <span>Goals</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#9b59b6', marginRight: '0.5rem' }}></div>
-                  Events
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#9b59b6', marginRight: '0.5rem' }}></div>
+                  <span>Events</span>
                 </div>
               </div>
             </div>

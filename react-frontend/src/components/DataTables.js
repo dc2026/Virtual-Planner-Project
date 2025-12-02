@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { format, parseISO, isValid } from 'date-fns';
+import { FiEdit2, FiTrash2, FiCheck, FiClock } from 'react-icons/fi';
 
 const DataTables = ({ tasks, goals, events, onEditItem, onDeleteItem }) => {
   const [activeTab, setActiveTab] = useState('tasks');
@@ -14,7 +16,12 @@ const DataTables = ({ tasks, goals, events, onEditItem, onDeleteItem }) => {
   };
 
   const formatISODateTime = (isoString) => {
-    return new Date(isoString).toLocaleString();
+    try {
+      const date = parseISO(isoString);
+      return isValid(date) ? format(date, 'MMM d, yyyy h:mm a') : 'Invalid date';
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   const getPriorityClass = (priority) => {
@@ -31,31 +38,35 @@ const DataTables = ({ tasks, goals, events, onEditItem, onDeleteItem }) => {
   };
 
   const getStatusText = (completed) => {
-    return completed ? '✅ Done' : '⏳ Pending';
+    return completed ? (
+      <><FiCheck style={{ marginRight: '0.25rem' }} />Done</>
+    ) : (
+      <><FiClock style={{ marginRight: '0.25rem' }} />Pending</>
+    );
   };
 
   return (
     <div>
-      <p className="section-header">📋 Manage Your Items</p>
+      <h2 className="section-header">Manage Your Items</h2>
       
       <div className="tabs">
         <button 
           className={`tab ${activeTab === 'tasks' ? 'active' : ''}`}
           onClick={() => setActiveTab('tasks')}
         >
-          📝 Tasks
+          Tasks
         </button>
         <button 
           className={`tab ${activeTab === 'goals' ? 'active' : ''}`}
           onClick={() => setActiveTab('goals')}
         >
-          🎯 Goals
+          Goals
         </button>
         <button 
           className={`tab ${activeTab === 'events' ? 'active' : ''}`}
           onClick={() => setActiveTab('events')}
         >
-          📅 Events
+          Events
         </button>
       </div>
 
@@ -87,7 +98,7 @@ const DataTables = ({ tasks, goals, events, onEditItem, onDeleteItem }) => {
                       <tr key={task.id}>
                         <td>{task.id}</td>
                         <td>{task.task}</td>
-                        <td>{new Date(task.date).toLocaleDateString()}</td>
+                        <td>{task.date}</td>
                         <td>{task.time}</td>
                         <td className={getPriorityClass(task.priority)}>{task.priority}</td>
                         <td className={getStatusClass(task.completed)}>
@@ -98,15 +109,19 @@ const DataTables = ({ tasks, goals, events, onEditItem, onDeleteItem }) => {
                             className="btn btn-secondary" 
                             style={{ marginRight: '0.5rem', fontSize: '0.8rem' }}
                             onClick={() => onEditItem('tasks', task)}
+                            aria-label={`Edit task: ${task.task}`}
                           >
-                            ✏️ Edit
+                            <FiEdit2 style={{ marginRight: '0.25rem' }} />
+                            Edit
                           </button>
                           <button 
                             className="btn btn-danger" 
                             style={{ fontSize: '0.8rem' }}
                             onClick={() => onDeleteItem('tasks', task.id)}
+                            aria-label={`Delete task: ${task.task}`}
                           >
-                            🗑️ Delete
+                            <FiTrash2 style={{ marginRight: '0.25rem' }} />
+                            Delete
                           </button>
                         </td>
                       </tr>
@@ -122,7 +137,7 @@ const DataTables = ({ tasks, goals, events, onEditItem, onDeleteItem }) => {
               borderRadius: '10px',
               color: '#666'
             }}>
-              📝 No tasks yet. Create your first task above!
+              No tasks yet. Create your first task above!
             </div>
           )}
         </div>
@@ -146,24 +161,26 @@ const DataTables = ({ tasks, goals, events, onEditItem, onDeleteItem }) => {
                   <tr key={goal.id}>
                     <td>{goal.id}</td>
                     <td>{goal.name}</td>
-                    <td>{new Date(goal.deadline).toLocaleDateString()}</td>
+                    <td>{goal.deadline}</td>
                     <td className={getStatusClass(goal.completed)}>
-                      {goal.completed ? '✅ Done' : '⏳ In Progress'}
+                      {goal.completed ? 'Done' : 'In Progress'}
                     </td>
                     <td>
                       <button 
                         className="btn btn-secondary" 
                         style={{ marginRight: '0.5rem', fontSize: '0.8rem' }}
                         onClick={() => onEditItem('goals', goal)}
+                        aria-label={`Edit goal: ${goal.name}`}
                       >
-                        ✏️ Edit
+                        Edit
                       </button>
                       <button 
                         className="btn btn-danger" 
                         style={{ fontSize: '0.8rem' }}
                         onClick={() => onDeleteItem('goals', goal.id)}
+                        aria-label={`Delete goal: ${goal.name}`}
                       >
-                        🗑️ Delete
+                        Delete
                       </button>
                     </td>
                   </tr>
@@ -178,7 +195,7 @@ const DataTables = ({ tasks, goals, events, onEditItem, onDeleteItem }) => {
               borderRadius: '10px',
               color: '#666'
             }}>
-              🎯 No goals yet. Set your first goal above!
+              No goals yet. Set your first goal above!
             </div>
           )}
         </div>
@@ -209,15 +226,17 @@ const DataTables = ({ tasks, goals, events, onEditItem, onDeleteItem }) => {
                         className="btn btn-secondary" 
                         style={{ marginRight: '0.5rem', fontSize: '0.8rem' }}
                         onClick={() => onEditItem('events', event)}
+                        aria-label={`Edit event: ${event.title}`}
                       >
-                        ✏️ Edit
+                        Edit
                       </button>
                       <button 
                         className="btn btn-danger" 
                         style={{ fontSize: '0.8rem' }}
                         onClick={() => onDeleteItem('events', event.id)}
+                        aria-label={`Delete event: ${event.title}`}
                       >
-                        🗑️ Delete
+                        Delete
                       </button>
                     </td>
                   </tr>
@@ -232,7 +251,7 @@ const DataTables = ({ tasks, goals, events, onEditItem, onDeleteItem }) => {
               borderRadius: '10px',
               color: '#666'
             }}>
-              📅 No events yet. Schedule your first event above!
+              No events yet. Schedule your first event above!
             </div>
           )}
         </div>
