@@ -90,11 +90,11 @@ A modern, responsive React application for managing tasks, goals, and events wit
 ## Project Structure
 
 ```
-react-frontend/
-├── public/
+react-frontend
+├── public
 │   └── index.html
-├── src/
-│   ├── components/
+├── src
+│   ├── components
 │   │   ├── AuthPage.js          # Login/Register/Reset Password
 │   │   ├── Dashboard.js         # Main dashboard with metrics
 │   │   ├── ItemForms.js         # Task/Goal/Event creation forms
@@ -102,7 +102,7 @@ react-frontend/
 │   │   ├── CalendarView.js      # Calendar with multiple views
 │   │   ├── WeeklyView.js        # Weekly schedule view
 │   │   └── Reminders.js         # Reminder system
-│   ├── services/
+│   ├── services
 │   │   └── authService.js       # Authentication logic
 │   ├── App.js                   # Main application component
 │   ├── index.js                 # Application entry point
