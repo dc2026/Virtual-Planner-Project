@@ -1,58 +1,83 @@
 # Virtual Planner
 
-Authors: Izzie Nielsen, Danielle Carrol, and Becca Borgmeier
+A React-based web application for managing tasks, goals, and events with user authentication and data persistence.
 
-The project creates an online planner for users to add tasks, events, and goals. Users will be able to track their progress and manage their schedule through this application.
-This project is in development for our Software Engineering course to practice object oriented programming, project management, agile development process, front end development, git/github
-and project integration.
+## Features
 
-## How to Run
-1. Install required libraries
-   ```bash
-   pip3 install streamlit
-   ```
-2. Clone or download respository
-3. Open project and correct directory
-   ```bash
-   pwd # check which folder you are in
-   cd streamlit # switch to correct folder
-   ```
-4. Run project from terminal
-```bash
-      streamlit run planner.py
+- **User Authentication**: Secure login/registration with password reset functionality
+- **Task Management**: Create, edit, and track tasks with priorities and due dates
+- **Goal Tracking**: Set and monitor long-term goals with deadlines
+- **Event Scheduling**: Schedule events with start/end times
+- **Weekly View**: Visual calendar showing all items for the current week
+- **Data Tables**: Organized view of all tasks, goals, and events
+- **Calendar View**: Monthly calendar display
+- **Reminders**: Smart reminder system for upcoming items
+- **Data Persistence**: All data saved locally in browser storage
+
+## How It Works
+
+### Authentication
+- Users register with username, password, and email
+- Secure password hashing using CryptoJS
+- Password reset with token-based verification
+- User sessions maintained with localStorage
+
+### Task Management
+- Create tasks with name, date, time, and priority levels (Low/Medium/High)
+- Mark tasks as complete/incomplete
+- Edit existing tasks
+- Delete tasks with confirmation
+
+### Goal Management
+- Set goals with descriptions and target deadlines
+- Track completion status
+- Edit and delete goals
+
+### Event Management
+- Schedule events with titles, start/end dates and times
+- View events in weekly and calendar views
+- Edit and delete events
+
+### Data Storage
+- All user data stored locally in browser localStorage
+- Automatic saving when items are added/modified
+- Data persists between sessions
+
+## Technical Stack
+
+- **Frontend**: React with functional components and hooks
+- **Styling**: Custom CSS with responsive design
+- **Icons**: React Icons (Feather icons)
+- **Date Handling**: date-fns library
+- **Notifications**: react-hot-toast
+- **Security**: CryptoJS for password hashing
+- **Storage**: Browser localStorage
+
+## Project Structure
+
+```
+react-frontend/
+├── src/
+│   ├── components/
+│   │   ├── AuthPage.js          # Login/registration
+│   │   ├── Dashboard.js         # Summary statistics
+│   │   ├── ItemForms.js         # Task/goal/event forms
+│   │   ├── WeeklyView.js        # Weekly calendar
+│   │   ├── DataTables.js        # Data management tables
+│   │   ├── CalendarView.js      # Monthly calendar
+│   │   └── Reminders.js         # Reminder system
+│   ├── services/
+│   │   └── authService.js       # Authentication logic
+│   ├── App.js                   # Main application
+│   └── index.css                # Styling
 ```
 
-## Backend Implementation
+## Getting Started
 
-The application uses Java to implement the backend of the project. Here are the classes:
+1. Navigate to the react-frontend branch
+2. Install dependencies: `npm install`
+3. Start the application: `npm start`
+4. Open http://localhost:3000 in your browser
+5. Register a new account or login with existing credentials
 
-### PlannerItem
-* Abstract class inherited by all other objects
-* String title: name of the planner item
-* String description: optional description for the planner item
-
-### Event
-* Event class would include appointments, meetings, or get-togethers
-* Date date: the date of the event
-
-### Goal
-* Goal class would be a broad, long term effort
-* String timeframe: description of desired length til goal completetion
-* ArrayList<Task> tasklist: arraylist of tasks, allowing users to connect task completetion to their goals
-
-### Task
-* Task class is a short term deadline, like a homework assignment, project, or application
-* Date dealine: date a task needs to be completed by
-* Boolean progress: tracks the progress of the task
-
-## Frontend Implementation
-* Streamlit library to help with front end development
-
-
-## Requirements
-
-### Libraries:
-* Java date object library
-    * import java.util.Date
-* Streamlit
-    * pip3 install streamlit 
+The application runs entirely in the browser with no backend server required.
