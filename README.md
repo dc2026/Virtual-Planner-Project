@@ -2,49 +2,49 @@
 
 A modern, responsive React application for managing tasks, goals, and events with an intuitive user interface.
 
-## 🚀 Features
+## Features
 
-### 🔐 Authentication
+### Authentication
 - User registration and login
 - Password reset functionality
 - Secure local storage authentication
 - User session management
 
-### 📊 Dashboard
+### Dashboard
 - Overview of tasks, goals, and events
 - Completion rate tracking
 - Visual metrics with equal-height cards
 - Real-time progress updates
 
-### 📝 Task Management
+### Task Management
 - Create, edit, and delete tasks
 - Priority levels (High, Medium, Low)
 - Date and time scheduling
 - Task completion tracking
 
-### 🎯 Goal Setting
+### Goal Setting
 - Long-term goal creation and tracking
 - Deadline management
 - Goal completion status
 - Progress visualization
 
-### 📅 Event Planning
+### Event Planning
 - Event creation with start/end times
 - Calendar integration
 - Event details management
 
-### 🗓️ Calendar Views
+### Calendar Views
 - Month, Week, and Day views
 - Interactive date selection
 - Color-coded priority system
 - Responsive layout adjustments
 
-### 📋 Data Management
+### Data Management
 - Local storage persistence
 - Real-time data updates
 - User-specific data isolation
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **React 18** - Modern React with hooks
 - **JavaScript ES6+** - Modern JavaScript features
@@ -55,7 +55,7 @@ A modern, responsive React application for managing tasks, goals, and events wit
 - **react-hot-toast** - Toast notifications
 - **react-icons** - Icon library
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 - Node.js (v14 or higher)
@@ -87,7 +87,7 @@ A modern, responsive React application for managing tasks, goals, and events wit
 5. **Open your browser**
    Navigate to `http://localhost:3000`
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 react-frontend/
@@ -111,7 +111,7 @@ react-frontend/
 └── README.md
 ```
 
-## 🎨 Features in Detail
+## Features in Detail
 
 ### Authentication System
 - Secure user registration with email validation
@@ -136,31 +136,31 @@ react-frontend/
 - Automatic save functionality
 - Data isolation between users
 
-## 🌐 Browser Support
+## Browser Support
 
 - Chrome (recommended)
 - Firefox
 - Safari
 - Edge
 
-## 📝 Available Scripts
+## Available Scripts
 
 - `npm start` - Runs the development server
 - `npm run build` - Builds the app for production
 - `npm test` - Launches the test runner
 - `npm run eject` - Ejects from Create React App (irreversible)
 
-## 👥 Authors
+## Authors
 
 - **Izzie Nielsen**
 - **Danielle Carrol**
 - **Becca Borgmeier**
 
-## 📄 License
+## License
 
 This project is developed for educational purposes as part of a Software Engineering course.
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -168,6 +168,6 @@ This project is developed for educational purposes as part of a Software Enginee
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📞 Support
+## Support
 
 If you have any questions or need help with setup, please open an issue in the GitHub repository.
