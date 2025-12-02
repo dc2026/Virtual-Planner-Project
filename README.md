@@ -160,14 +160,7 @@ react-frontend
 
 This project is developed for educational purposes as part of a Software Engineering course.
 
-## Contributing
+## Demo Video
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+https://github.com/user-attachments/assets/f53f54b0-7083-49fd-896a-59f5b4653f21
 
-## Support
-
-If you have any questions or need help with setup, please open an issue in the GitHub repository.
