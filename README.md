@@ -1,83 +1,173 @@
 # Virtual Planner
 
-A React-based web application for managing tasks, goals, and events with user authentication and data persistence.
+A modern, responsive React application for managing tasks, goals, and events with an intuitive user interface.
 
-## Features
+## 🚀 Features
 
-- **User Authentication**: Secure login/registration with password reset functionality
-- **Task Management**: Create, edit, and track tasks with priorities and due dates
-- **Goal Tracking**: Set and monitor long-term goals with deadlines
-- **Event Scheduling**: Schedule events with start/end times
-- **Weekly View**: Visual calendar showing all items for the current week
-- **Data Tables**: Organized view of all tasks, goals, and events
-- **Calendar View**: Monthly calendar display
-- **Reminders**: Smart reminder system for upcoming items
-- **Data Persistence**: All data saved locally in browser storage
+### 🔐 Authentication
+- User registration and login
+- Password reset functionality
+- Secure local storage authentication
+- User session management
 
-## How It Works
+### 📊 Dashboard
+- Overview of tasks, goals, and events
+- Completion rate tracking
+- Visual metrics with equal-height cards
+- Real-time progress updates
 
-### Authentication
-- Users register with username, password, and email
-- Secure password hashing using CryptoJS
-- Password reset with token-based verification
-- User sessions maintained with localStorage
+### 📝 Task Management
+- Create, edit, and delete tasks
+- Priority levels (High, Medium, Low)
+- Date and time scheduling
+- Task completion tracking
 
-### Task Management
-- Create tasks with name, date, time, and priority levels (Low/Medium/High)
-- Mark tasks as complete/incomplete
-- Edit existing tasks
-- Delete tasks with confirmation
+### 🎯 Goal Setting
+- Long-term goal creation and tracking
+- Deadline management
+- Goal completion status
+- Progress visualization
 
-### Goal Management
-- Set goals with descriptions and target deadlines
-- Track completion status
-- Edit and delete goals
+### 📅 Event Planning
+- Event creation with start/end times
+- Calendar integration
+- Event details management
 
-### Event Management
-- Schedule events with titles, start/end dates and times
-- View events in weekly and calendar views
-- Edit and delete events
+### 🗓️ Calendar Views
+- Month, Week, and Day views
+- Interactive date selection
+- Color-coded priority system
+- Responsive layout adjustments
 
-### Data Storage
-- All user data stored locally in browser localStorage
-- Automatic saving when items are added/modified
-- Data persists between sessions
+### 📋 Data Management
+- Local storage persistence
+- Real-time data updates
+- User-specific data isolation
 
-## Technical Stack
+## 🛠️ Technology Stack
 
-- **Frontend**: React with functional components and hooks
-- **Styling**: Custom CSS with responsive design
-- **Icons**: React Icons (Feather icons)
-- **Date Handling**: date-fns library
-- **Notifications**: react-hot-toast
-- **Security**: CryptoJS for password hashing
-- **Storage**: Browser localStorage
+- **React 18** - Modern React with hooks
+- **JavaScript ES6+** - Modern JavaScript features
+- **CSS3** - Custom styling with flexbox/grid
+- **Local Storage** - Client-side data persistence
+- **Crypto-JS** - Password hashing and security
+- **date-fns** - Date manipulation library
+- **react-hot-toast** - Toast notifications
+- **react-icons** - Icon library
 
-## Project Structure
+## 📦 Installation
+
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn package manager
+
+### Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/dc2026/Virtual-Planner-Project.git
+   cd Virtual-Planner-Project
+   ```
+
+2. **Navigate to the react-frontend directory**
+   ```bash
+   cd react-frontend
+   ```
+
+3. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+4. **Start the development server**
+   ```bash
+   npm start
+   ```
+
+5. **Open your browser**
+   Navigate to `http://localhost:3000`
+
+## 📁 Project Structure
 
 ```
 react-frontend/
+├── public/
+│   └── index.html
 ├── src/
 │   ├── components/
-│   │   ├── AuthPage.js          # Login/registration
-│   │   ├── Dashboard.js         # Summary statistics
-│   │   ├── ItemForms.js         # Task/goal/event forms
-│   │   ├── WeeklyView.js        # Weekly calendar
-│   │   ├── DataTables.js        # Data management tables
-│   │   ├── CalendarView.js      # Monthly calendar
+│   │   ├── AuthPage.js          # Login/Register/Reset Password
+│   │   ├── Dashboard.js         # Main dashboard with metrics
+│   │   ├── ItemForms.js         # Task/Goal/Event creation forms
+│   │   ├── DataTables.js        # Data display tables
+│   │   ├── CalendarView.js      # Calendar with multiple views
+│   │   ├── WeeklyView.js        # Weekly schedule view
 │   │   └── Reminders.js         # Reminder system
 │   ├── services/
 │   │   └── authService.js       # Authentication logic
-│   ├── App.js                   # Main application
-│   └── index.css                # Styling
+│   ├── App.js                   # Main application component
+│   ├── index.js                 # Application entry point
+│   └── index.css                # Global styles
+├── package.json
+└── README.md
 ```
 
-## Getting Started
+## 🎨 Features in Detail
 
-1. Navigate to the react-frontend branch
-2. Install dependencies: `npm install`
-3. Start the application: `npm start`
-4. Open http://localhost:3000 in your browser
-5. Register a new account or login with existing credentials
+### Authentication System
+- Secure user registration with email validation
+- Password hashing using SHA-256
+- Token-based password reset functionality
+- Persistent login sessions
 
-The application runs entirely in the browser with no backend server required.
+### Responsive Design
+- Mobile-first approach
+- Flexible grid system
+- Adaptive layouts for different screen sizes
+- Touch-friendly interface elements
+
+### Visual Design
+- Modern glass-morphism effects
+- Consistent color scheme
+- Smooth animations and transitions
+- Intuitive iconography
+
+### Data Persistence
+- All user data stored locally
+- Automatic save functionality
+- Data isolation between users
+
+## 🌐 Browser Support
+
+- Chrome (recommended)
+- Firefox
+- Safari
+- Edge
+
+## 📝 Available Scripts
+
+- `npm start` - Runs the development server
+- `npm run build` - Builds the app for production
+- `npm test` - Launches the test runner
+- `npm run eject` - Ejects from Create React App (irreversible)
+
+## 👥 Authors
+
+- **Izzie Nielsen**
+- **Danielle Carrol**
+- **Becca Borgmeier**
+
+## 📄 License
+
+This project is developed for educational purposes as part of a Software Engineering course.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📞 Support
+
+If you have any questions or need help with setup, please open an issue in the GitHub repository.
